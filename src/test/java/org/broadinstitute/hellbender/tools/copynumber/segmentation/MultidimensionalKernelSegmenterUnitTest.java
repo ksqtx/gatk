@@ -7,12 +7,11 @@ import htsjdk.samtools.util.OverlapDetector;
 import org.broadinstitute.hellbender.GATKBaseTest;
 import org.broadinstitute.hellbender.tools.copynumber.formats.collections.AllelicCountCollection;
 import org.broadinstitute.hellbender.tools.copynumber.formats.collections.CopyRatioCollection;
-import org.broadinstitute.hellbender.tools.copynumber.formats.collections.MultidimensionalSegmentCollection;
+import org.broadinstitute.hellbender.tools.copynumber.formats.collections.SimpleIntervalCollection;
 import org.broadinstitute.hellbender.tools.copynumber.formats.metadata.SampleLocatableMetadata;
 import org.broadinstitute.hellbender.tools.copynumber.formats.metadata.SimpleSampleLocatableMetadata;
 import org.broadinstitute.hellbender.tools.copynumber.formats.records.AllelicCount;
 import org.broadinstitute.hellbender.tools.copynumber.formats.records.CopyRatio;
-import org.broadinstitute.hellbender.tools.copynumber.formats.records.MultidimensionalSegment;
 import org.broadinstitute.hellbender.tools.copynumber.utils.segmentation.KernelSegmenterUnitTest;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.testng.Assert;
@@ -54,7 +53,7 @@ public final class MultidimensionalKernelSegmenterUnitTest extends GATKBaseTest 
         //generate numAllSites alternate-allele fractions
         final int numAllSites = 1000;
         final double noiseLevel = 0.001;
-        final double homFraction = 0.1;     //low hom fraction minimizes uncertainty in the changepoints coming from runs of adjacent homs near the changepoints
+        final double homFraction = 0.025;   //low hom fraction minimizes uncertainty in the changepoints coming from runs of adjacent homs near the changepoints
         final List<Double> allMinorAlleleFractions = Arrays.asList(0.45, 0.05, 0.25, 0.45, 0.05, 0.25, 0.45, 0.05, 0.25, 0.45, 0.05, 0.25);
         final List<Double> allAlternateAlleleFractions = IntStream.range(0, numAllSites).boxed()
                 .map(i -> rng.nextFloat() < homFraction
@@ -121,22 +120,22 @@ public final class MultidimensionalKernelSegmenterUnitTest extends GATKBaseTest 
         final Comparator<Locatable> comparator = denoisedCopyRatios.getComparator();
         final OverlapDetector<CopyRatio> copyRatioMidpointOverlapDetector = denoisedCopyRatios.getMidpointOverlapDetector();
         final OverlapDetector<AllelicCount> allelicCountOverlapDetector = allelicCounts.getOverlapDetector();
-        final MultidimensionalSegmentCollection segmentsExpected =
-                new MultidimensionalSegmentCollection(
+        final SimpleIntervalCollection segmentsExpected =
+                new SimpleIntervalCollection(
                         metadata,
                         Arrays.asList(
-                                new MultidimensionalSegment(new SimpleInterval("1", 1, 1000), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("1", 1001, 2000), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("1", 2001, 2500), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("2", 1, 500), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("2", 501, 1500), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("2", 1501, 2500), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("3", 1, 1000), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("3", 1001, 2000), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("3", 2001, 2500), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("4", 1, 500), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("4", 501, 1500), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector),
-                                new MultidimensionalSegment(new SimpleInterval("4", 1501, 2500), comparator, copyRatioMidpointOverlapDetector, allelicCountOverlapDetector)));
+                                new SimpleInterval("1", 1, 1000),
+                                new SimpleInterval("1", 1001, 2000),
+                                new SimpleInterval("1", 2001, 2500),
+                                new SimpleInterval("2", 1, 500),
+                                new SimpleInterval("2", 501, 1500),
+                                new SimpleInterval("2", 1501, 2500),
+                                new SimpleInterval("3", 1, 1000),
+                                new SimpleInterval("3", 1001, 2000),
+                                new SimpleInterval("3", 2001, 2500),
+                                new SimpleInterval("4", 1, 500),
+                                new SimpleInterval("4", 501, 1500),
+                                new SimpleInterval("4", 1501, 2500)));
 
         return new Object[][]{
                 {denoisedCopyRatios, allelicCounts, segmentsExpected}
@@ -146,17 +145,17 @@ public final class MultidimensionalKernelSegmenterUnitTest extends GATKBaseTest 
     @Test(dataProvider = "dataMultidimensionalKernelSegmenter")
     public void testMultidimensionalKernelSegmenter(final CopyRatioCollection denoisedCopyRatios,
                                                     final AllelicCountCollection allelicCounts,
-                                                    final MultidimensionalSegmentCollection segmentsExpected) {
+                                                    final SimpleIntervalCollection segmentsExpected) {
         final int maxNumChangepointsPerChromosome = 25;
         final double kernelVarianceCopyRatio = 0.;
-        final double kernelVarianceAlleleFraction = 0.025;
+        final double kernelVarianceAlleleFraction = 0.05;
         final double kernelScalingAlleleFraction = 1.;
         final int kernelApproximationDimension = 20;
         final List<Integer> windowSizes = Arrays.asList(8, 16, 32, 64);
         final double numChangepointsPenaltyLinearFactor = 2.;
         final double numChangepointsPenaltyLogLinearFactor = 2.;
 
-        final MultidimensionalSegmentCollection segments = new MultidimensionalKernelSegmenter(denoisedCopyRatios, allelicCounts)
+        final SimpleIntervalCollection segments = new MultidimensionalKernelSegmenter(denoisedCopyRatios, allelicCounts)
                 .findSegmentation(maxNumChangepointsPerChromosome, kernelVarianceCopyRatio, kernelVarianceAlleleFraction,
                         kernelScalingAlleleFraction, kernelApproximationDimension,
                         windowSizes, numChangepointsPenaltyLinearFactor, numChangepointsPenaltyLogLinearFactor);
