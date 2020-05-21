@@ -189,6 +189,10 @@ public final class ProteinChangeInfo {
             aaStartPos = proteinChangeStartIndex + 1;
             aaEndPos = aaStartPos + numRefAminoAcids + endOffset;
 
+            if( aaEndPos > referenceProteinSequence.length() ){ 
+                throw new FuncotatorUtils.TranscriptCodingSequenceException("In-frame deletion intersects the first two nucleotides of a stop codon.  Cannot yet handle this case.");
+            }
+
             refAaSeq = referenceProteinSequence.substring(proteinChangeStartIndex, aaEndPos);
             altAaSeq = alternateProteinSequence.substring(proteinChangeStartIndex, aaStartPos + numAltAminoAcids + endOffset);
 
